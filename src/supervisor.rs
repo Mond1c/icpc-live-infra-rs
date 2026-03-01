@@ -70,7 +70,7 @@ async fn pipe_to_file(stream: impl tokio::io::AsyncRead + Unpin, path: &str) {
 
     let mut lines = BufReader::new(stream).lines();
     while let Ok(Some(line)) = lines.next_line().await {
-        let entry = format!("{}\n", line);
+        let entry = format!("[{}] {}\n", chrono::Utc::now().to_rfc3339(), line);
         let _ = file.write_all(entry.as_bytes()).await;
     }
 }
