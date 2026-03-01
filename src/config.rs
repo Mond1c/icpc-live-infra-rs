@@ -30,7 +30,7 @@ pub struct Service {
     pub depends_on: Option<Vec<Dependency>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct HealthCheck {
     pub http: Option<String>,
     pub tcp: Option<String>,

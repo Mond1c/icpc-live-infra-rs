@@ -24,7 +24,7 @@ name = "cds-converter"
 command = "java"
 args = ["-jar", "./cds-converter.jar", "-c", "config/wf/2025"]
 restart = "always"
-healthcheck = { http = "http://localhost:8080/health", interval_ms = 5000, timeout_ms = 2000 }
+healthcheck = { http = "http://localhost:8080", interval_ms = 5000, timeout_ms = 2000 }
 
 [[service]]
 name = "live-v3-main"
@@ -45,4 +45,4 @@ name = "webrtc-grabber"
 command = "./signalling"
 restart = "always"
 args = []
-healthcheck = { http = "http://localhost:8080/health", interval_ms = 5000, timeout_ms = 2000 }
+healthcheck = { http = "http://localhost:13478", interval_ms = 5000, timeout_ms = 2000 }

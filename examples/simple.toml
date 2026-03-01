@@ -18,3 +18,4 @@ name = "logging"
 command = "python3"
 args = ["examples/main.py"]
 restart = "always"
+healthcheck = { http = "http://localhost:8080", interval_ms = 5000, timeout_ms = 2000 }

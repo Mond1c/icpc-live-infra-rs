@@ -6,7 +6,7 @@ use tokio::{
     process::Command,
 };
 
-use crate::config::Service;
+use crate::{config::Service, healthcheck};
 
 pub async fn run_service(service: Service) {
     loop {
@@ -41,6 +41,11 @@ pub async fn run_service(service: Service) {
             tokio::spawn(async move {
                 pipe_to_file(stderr, &path).await;
             });
+        }
+
+        if let Some(hc) = service.healthcheck.clone() {
+            let name = service.name.clone();
+            tokio::spawn(healthcheck::run_healthcheck(name, hc));
         }
 
         let status = child.wait().await;

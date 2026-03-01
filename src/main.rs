@@ -1,4 +1,5 @@
 mod config;
+mod healthcheck;
 mod supervisor;
 
 #[tokio::main]
