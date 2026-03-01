@@ -1,5 +1,6 @@
 mod agent;
 mod config;
+mod ctl;
 mod healthcheck;
 mod state;
 mod supervisor;
