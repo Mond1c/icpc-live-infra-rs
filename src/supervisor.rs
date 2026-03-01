@@ -6,11 +6,30 @@ use tokio::{
     process::Command,
 };
 
-use crate::{config::Service, healthcheck};
+use crate::{
+    agent::{AgentHandle, Event},
+    config::Service,
+    healthcheck,
+    state::{HealthMap, ServiceHealth},
+};
 
-pub async fn run_service(service: Service) {
+pub async fn run_service(service: Service, health_map: HealthMap, agent_handle: AgentHandle) {
+    if let Some(deps) = &service.depends_on {
+        for dep in deps {
+            if let Some(tx) = health_map.get(&dep.service) {
+                let mut rx = tx.subscribe();
+                println!("[{}] waiting for {}...", service.name, dep.service);
+                rx.wait_for(|h| *h == ServiceHealth::Healthy).await.unwrap();
+                println!("[{}] dependency {} is healthy", service.name, dep.service);
+            }
+        }
+    }
+
     loop {
         println!("[{}] starting...", service.name);
+        agent_handle.emit(Event::ServiceStarted {
+            service: service.name.clone(),
+        });
 
         let child = Command::new(&service.command)
             .args(&service.args)
@@ -22,6 +41,10 @@ pub async fn run_service(service: Service) {
             Ok(c) => c,
             Err(e) => {
                 println!("[{}] failed to spawn: {}", service.name, e);
+                agent_handle.emit(Event::ServiceExited {
+                    service: service.name.clone(),
+                    code: Some(-1),
+                });
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
@@ -45,14 +68,26 @@ pub async fn run_service(service: Service) {
 
         if let Some(hc) = service.healthcheck.clone() {
             let name = service.name.clone();
-            tokio::spawn(healthcheck::run_healthcheck(name, hc));
+            let tx = health_map.get(&name).unwrap().clone();
+            tokio::spawn(healthcheck::run_healthcheck(
+                name,
+                hc,
+                tx,
+                agent_handle.clone(),
+            ));
         }
 
         let status = child.wait().await;
 
         match status {
             Ok(s) => println!("[{}] exited with {}", service.name, s),
-            Err(e) => println!("[{}] failed to spawn: {}", service.name, e),
+            Err(e) => {
+                println!("[{}] failed to spawn: {}", service.name, e);
+                agent_handle.emit(Event::ServiceExited {
+                    service: service.name.clone(),
+                    code: Some(-2),
+                });
+            }
         }
 
         match service.restart.as_str() {

@@ -5,13 +5,14 @@ name = "Test sleep"
 name = "sleep_node"
 host = "127.0.0.1"
 agent_port = 8080
-services = ["sleep"]
+services = ["sleep", "logging"]
 
 [[service]]
 name = "sleep"
 command = "sleep"
 args = ["3"]
 restart = "always"
+depends_on = [{ service = "logging", node = "sleep_node"}]
 
 [[service]]
 name = "logging"
