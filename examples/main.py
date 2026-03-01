@@ -1,0 +1,1 @@
+print('[LOG] some logs')

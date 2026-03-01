@@ -1,7 +1,8 @@
 use std::{process::Stdio, time::Duration};
 
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
+    fs::OpenOptions,
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
 };
 
@@ -11,7 +12,7 @@ pub async fn run_service(service: Service) {
     loop {
         println!("[{}] starting...", service.name);
 
-        let mut child = Command::new(&service.command)
+        let child = Command::new(&service.command)
             .args(&service.args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -26,23 +27,19 @@ pub async fn run_service(service: Service) {
             }
         };
 
+        let log_path = format!("logs/{}.log", service.name);
+
         if let Some(stdout) = child.stdout.take() {
-            let name = service.name.clone();
+            let path = log_path.clone();
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stdout).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
-                    println!("[{name}] {line}");
-                }
+                pipe_to_file(stdout, &path).await;
             });
         }
 
         if let Some(stderr) = child.stderr.take() {
-            let name = service.name.clone();
+            let path = log_path.clone();
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stderr).lines();
-                while let Ok(Some(line)) = lines.next_line().await {
-                    eprintln!("[{name}] {line}");
-                }
+                pipe_to_file(stderr, &path).await;
             });
         }
 
@@ -60,5 +57,20 @@ pub async fn run_service(service: Service) {
             }
             _ => return,
         }
+    }
+}
+
+async fn pipe_to_file(stream: impl tokio::io::AsyncRead + Unpin, path: &str) {
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .await
+        .expect("can't open log file");
+
+    let mut lines = BufReader::new(stream).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        let entry = format!("{}\n", line);
+        let _ = file.write_all(entry.as_bytes()).await;
     }
 }

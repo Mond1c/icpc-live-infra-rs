@@ -3,6 +3,7 @@ mod supervisor;
 
 #[tokio::main]
 async fn main() {
+    tokio::fs::create_dir("logs").await.unwrap();
     let broadcast = config::Broadcast::load("examples/simple.toml").expect("can't parse config");
     println!("{:#?}", broadcast);
 
