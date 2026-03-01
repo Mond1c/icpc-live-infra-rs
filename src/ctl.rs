@@ -25,7 +25,7 @@ impl Default for ServiceState {
 
 pub type ClusterState = Arc<Mutex<HashMap<String, ServiceState>>>;
 
-pub fn new_cluter_state() -> ClusterState {
+pub fn new_cluster_state() -> ClusterState {
     Arc::new(Mutex::new(HashMap::new()))
 }
 
