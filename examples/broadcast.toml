@@ -1,0 +1,48 @@
+[topology]
+name = "ICPC World Finals 2025"
+
+[[node]]
+name = "webrtc-grabber"
+host = "10.0.1.10"
+agent_port = 7700
+services = ["webrtc-grabber"]
+
+[[node]]
+name = "cds"
+host = "10.0.1.1"
+agent_port = 7700
+services = ["cds-converter"]
+
+[[node]]
+name = "live"
+host = "10.0.1.11"
+agent_port = 7700
+services = ["live-v3-main", "live-v3-split"]
+
+[[service]]
+name = "cds-converter"
+command = "java"
+args = ["-jar", "./cds-converter.jar", "-c", "config/wf/2025"]
+restart = "always"
+healthcheck = { http = "http://localhost:8080/health", interval_ms = 5000, timeout_ms = 2000 }
+
+[[service]]
+name = "live-v3-main"
+command = "java"
+args = ["-jar", "./live-v3.jar", "-c", "config/wf/2025-main", "--visual-config", "config/wf/2025-main/visual-config.json"]
+restart = "always"
+depends_on = [{ service = "cds-converter", node = "cds" }]
+
+[[service]]
+name = "live-v3-split"
+command = "java"
+args = ["-jar", "./live-v3.jar", "-c", "config/wf/2025-split", "--visual-config", "config/wf/2025-split/visual-config.json", "-p", "8081"]
+restart = "always"
+depends_on = [{ service = "cds-converter", node = "cds" }]
+
+[[service]]
+name = "webrtc-grabber"
+command = "./signalling"
+restart = "always"
+args = []
+healthcheck = { http = "http://localhost:8080/health", interval_ms = 5000, timeout_ms = 2000 }
