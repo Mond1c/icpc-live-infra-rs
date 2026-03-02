@@ -1,4 +1,4 @@
-use futures_util::{SinkExt, StreamExt};
+use futures_util::SinkExt;
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_tungstenite::accept_async;
