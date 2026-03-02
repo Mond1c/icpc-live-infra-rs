@@ -6,6 +6,8 @@ name = "sleep_node"
 host = "127.0.0.1"
 agent_port = 7700 
 services = ["sleep", "logging"]
+deploy_user = "mike"
+deploy_path = "/home/mike/projects/icpc-live-infra-rs/deploy"
 
 [[service]]
 name = "sleep"
@@ -20,3 +22,8 @@ command = "python3"
 args = ["examples/main.py"]
 restart = "always"
 healthcheck = { http = "http://localhost:8080", interval_ms = 5000, timeout_ms = 2000 }
+
+[service.deploy]
+files = [
+  "examples/main.py"
+]

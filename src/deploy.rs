@@ -9,7 +9,7 @@ use crate::config::{Broadcast, Node, Service};
 pub async fn deploy_node(
     node: &Node,
     services: &[Service],
-    broadcast: &Broadcast,
+    _broadcast: &Broadcast,
 ) -> anyhow::Result<()> {
     let user = node.deploy_user.as_deref().unwrap_or("root");
     let deploy_path = node.deploy_path.as_deref().unwrap_or("/opt/icpc");
@@ -25,11 +25,11 @@ pub async fn deploy_node(
 
     println!("[deploy] connected, uploading files...");
 
-    let channel = session.channel_open_session().await?;
-    channel.request_subsystem(true, "sftp").await?;
-    let sftp = SftpSession::new(channel.into_stream()).await?;
+    let sftp_channel = session.channel_open_session().await?;
+    sftp_channel.request_subsystem(true, "sftp").await?;
+    let sftp = SftpSession::new(sftp_channel.into_stream()).await?;
 
-    sftp.create_dir(deploy_path).await.ok();
+    create_dir_all(&sftp, deploy_path).await?;
 
     for service in services {
         if let Some(deploy) = &service.deploy {
@@ -39,21 +39,33 @@ pub async fn deploy_node(
         }
     }
 
-    upload(&sftp, "target/release/agent", deploy_path).await?;
+    upload(&sftp, "target/release/icpc-agent", deploy_path).await?;
+    drop(sftp);
 
     println!("[deploy] files uploaded, restarting agent....");
 
-    channel
+    let exec_channel = session.channel_open_session().await?;
+    exec_channel
         .exec(
             true,
             format!(
-                "pkill -f 'agent' || true && cd {} && nohup ./agent {} &",
+                "pkill -f 'icpc-agent' || true && cd {} && nohup ./icpc-agent {} &",
                 deploy_path, node.agent_port,
             ),
         )
         .await?;
 
     println!("[deploy] {} done", node.name);
+    Ok(())
+}
+
+async fn create_dir_all(sftp: &SftpSession, path: &str) -> anyhow::Result<()> {
+    let mut current = String::new();
+    for part in path.split('/').filter(|p| !p.is_empty()) {
+        current.push('/');
+        current.push_str(part);
+        sftp.create_dir(path).await.ok();
+    }
     Ok(())
 }
 
@@ -72,7 +84,7 @@ async fn upload(sftp: &SftpSession, local: &str, remote_dir: &str) -> anyhow::Re
     let mut remote = sftp.create(&remote_path).await?;
 
     use tokio::io::AsyncWriteExt;
-    remote.write_all(&data).await;
+    remote.write_all(&data).await?;
     Ok(())
 }
 

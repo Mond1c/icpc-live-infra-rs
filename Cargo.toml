@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "agent"
+name = "icpc-agent"
 path = "src/bin/agent.rs"
 
 [[bin]]
@@ -27,3 +27,4 @@ chrono = "0.4"
 russh = "0.44"
 russh-sftp = "2"
 tokio-stream = "0.1"
+async-trait = "0.1"
