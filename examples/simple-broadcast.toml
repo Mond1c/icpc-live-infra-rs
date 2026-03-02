@@ -1,0 +1,19 @@
+[[node]]
+name = "cds"
+host = "127.0.0.1"
+agent_port = 7700
+services = ["cds-converter"]
+deploy_user = "mike"
+deploy_path = "/Users/mike/projects/icpc-live-infra-rs/deploy"
+
+[[service]]
+name = "cds-converter"
+command = "java"
+args = ["-jar", "./cds-converter.jar", "-c", "config/wf/2025"]
+restart = "always"
+
+[service.deploy]
+files = [
+    "cds-converter.jar",
+    "config/wf/2025/"
+]

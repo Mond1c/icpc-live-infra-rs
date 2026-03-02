@@ -24,3 +24,6 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 futures-util = "0.3"
 chrono = "0.4"
+russh = "0.44"
+russh-sftp = "2"
+tokio-stream = "0.1"

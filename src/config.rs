@@ -18,6 +18,8 @@ pub struct Node {
     pub host: String,
     pub agent_port: u16,
     pub services: Vec<String>,
+    pub deploy_user: Option<String>,
+    pub deploy_path: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -28,6 +30,12 @@ pub struct Service {
     pub restart: String,
     pub healthcheck: Option<HealthCheck>,
     pub depends_on: Option<Vec<Dependency>>,
+    pub deploy: Option<ServiceDeploy>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServiceDeploy {
+    pub files: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
