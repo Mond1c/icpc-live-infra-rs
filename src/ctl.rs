@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
 
-use crate::agent::Event;
+use crate::{agent::Event, config::Service, protocol::CtlMessage};
 
 #[derive(Debug, Clone)]
 pub struct ServiceState {
@@ -29,7 +29,13 @@ pub fn new_cluster_state() -> ClusterState {
     Arc::new(Mutex::new(HashMap::new()))
 }
 
-pub async fn watch_node(node_name: String, host: String, port: u16, state: ClusterState) {
+pub async fn watch_node(
+    node_name: String,
+    host: String,
+    port: u16,
+    state: ClusterState,
+    services: Vec<Service>,
+) {
     let url = format!("ws://{}:{}", host, port);
 
     loop {
@@ -38,6 +44,16 @@ pub async fn watch_node(node_name: String, host: String, port: u16, state: Clust
         match connect_async(&url).await {
             Ok((mut ws, _)) => {
                 println!("[ctl] connected to {}", node_name);
+
+                let deploy = serde_json::to_string(&CtlMessage::Deploy {
+                    services: services.clone(),
+                })
+                .unwrap();
+
+                if ws.send(deploy.into()).await.is_err() {
+                    println!("[ctl] failed to send deploy to {}", node_name);
+                    continue;
+                }
 
                 while let Some(msg) = ws.next().await {
                     match msg {

@@ -11,11 +11,19 @@ async fn main() {
 
     let mut handles = vec![];
     for node in broadcast.node {
+        let node_services: Vec<config::Service> = broadcast
+            .service
+            .iter()
+            .filter(|s| node.services.contains(&s.name))
+            .cloned()
+            .collect();
+
         let h = tokio::spawn(ctl::watch_node(
             node.name,
             node.host,
             node.agent_port,
             cluster_state.clone(),
+            node_services,
         ));
         handles.push(h);
     }

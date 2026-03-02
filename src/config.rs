@@ -20,7 +20,7 @@ pub struct Node {
     pub services: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Service {
     pub name: String,
     pub command: String,
@@ -55,7 +55,7 @@ impl HealthCheck {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Dependency {
     pub service: String,
     pub node: String,
