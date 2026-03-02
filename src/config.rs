@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub struct Broadcast {
@@ -20,7 +20,7 @@ pub struct Node {
     pub services: Vec<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Service {
     pub name: String,
     pub command: String,
@@ -30,7 +30,7 @@ pub struct Service {
     pub depends_on: Option<Vec<Dependency>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HealthCheck {
     pub http: Option<String>,
     pub tcp: Option<String>,
@@ -55,7 +55,7 @@ impl HealthCheck {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Dependency {
     pub service: String,
     pub node: String,

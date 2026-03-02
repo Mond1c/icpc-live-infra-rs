@@ -4,6 +4,7 @@ use tokio::{
     fs::OpenOptions,
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
+    sync::watch,
 };
 
 use crate::{
@@ -13,7 +14,18 @@ use crate::{
     state::{HealthMap, ServiceHealth},
 };
 
-pub async fn run_service(service: Service, health_map: HealthMap, agent_handle: AgentHandle) {
+#[derive(Debug, Clone, PartialEq)]
+pub enum SupervisorCommand {
+    Restart,
+    Stop,
+}
+
+pub async fn run_service(
+    service: Service,
+    health_map: HealthMap,
+    agent_handle: AgentHandle,
+    mut cmd_rx: watch::Receiver<Option<SupervisorCommand>>,
+) {
     if let Some(deps) = &service.depends_on {
         for dep in deps {
             if let Some(tx) = health_map.get(&dep.service) {
@@ -77,16 +89,32 @@ pub async fn run_service(service: Service, health_map: HealthMap, agent_handle: 
             ));
         }
 
-        let status = child.wait().await;
-
-        match status {
-            Ok(s) => println!("[{}] exited with {}", service.name, s),
-            Err(e) => {
-                println!("[{}] failed to spawn: {}", service.name, e);
-                agent_handle.emit(Event::ServiceExited {
-                    service: service.name.clone(),
-                    code: Some(-2),
-                });
+        tokio::select! {
+            status = child.wait() => {
+                match status {
+                    Ok(s) => println!("[{}] exited with {}", service.name, s),
+                    Err(e) => {
+                        println!("[{}] failed to spawn: {}", service.name, e);
+                        agent_handle.emit(Event::ServiceExited {
+                            service: service.name.clone(),
+                            code: Some(-2),
+                        });
+                    }
+                }
+            }
+            Ok(()) = cmd_rx.changed() => {
+                let cmd = cmd_rx.borrow().clone();
+                match cmd {
+                    Some(SupervisorCommand::Restart) => {
+                        println!("[{}] restart requested", service.name);
+                        let _ = child.kill().await;
+                    }
+                    Some(SupervisorCommand::Stop) => {
+                        let _ = child.kill().await;
+                        return;
+                    }
+                    None => {}
+                }
             }
         }
 
